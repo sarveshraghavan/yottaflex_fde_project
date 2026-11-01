@@ -1,0 +1,6 @@
+case_id,case,entity,observed,ground_truth_issue,is_process_fault,validator_rule,validator_flagged
+EDGE-001,pipe references missing node,Pipe,to_node_id=NODE-MISSING,missing_node_reference,false,foreign_key_exists,true
+EDGE-002,tank level above capacity,Tank,level_pct=101; maximum_pct=100,tank_over_capacity,true,level_within_capacity,true
+EDGE-003,flow conservation beyond tolerance,NetworkBalance,residual_m3_h=75.180; noise_tolerance_m3_h=25.060,flow_balance_violation,true,residual_within_noise_tolerance,true
+EDGE-004,simulation output missing input config,SimulationRun,config_json=,missing_run_configuration,false,configuration_present,true
+EDGE-005,sensor fault mislabeled as process fault,GroundTruth,issue_type=sensor_fault; is_process_fault=true,sensor_fault_label_mismatch,false,sensor_fault_not_process_fault,true

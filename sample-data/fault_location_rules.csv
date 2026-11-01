@@ -1,0 +1,14 @@
+issue_type,location,signal,expected_sign,meaning
+leak,inlet_flow,q_in,slightly_up,Leak increases line draw at inlet.
+leak,outlet_flow,q_out,down,Less flow reaches destination.
+leak,paired_flows,q_in-q_out,up,Flow gap estimates leak flow.
+leak,pump_discharge_pressure,pressure,down,Modeled discharge pressure falls slightly.
+blockage,pump_discharge_pressure,pressure,up,Pressure rises upstream of pipe restriction.
+blockage,pipe_across_taps,pressure_drop,up,Pressure loss across restricted pipe increases.
+pump_degradation,pump_discharge_pressure,pressure,down,Reduced pump head lowers discharge pressure.
+valve_partial,valve_across_taps,pressure_drop,up,Pressure loss across partially closed valve increases.
+valve_partial,pipe_pressure_drop,pressure_drop,down,Lower line flow reduces pipe friction loss.
+sensor_fault,faulty_sensor,measurement_error,depends_on_fault,Process truth is unchanged; reading alone is faulty.
+sensor_fault,paired_flows,apparent_flow_gap,may_be_nonzero,Stuck inlet sensor can mimic a leak in measured data.
+compound_fault,paired_flows,q_in-q_out,up,Concurrent leak and blockage produce a flow gap.
+compound_fault,pipe_across_taps,pressure_drop,up,Concurrent blockage increases pipe pressure loss.

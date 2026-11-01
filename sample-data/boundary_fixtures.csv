@@ -1,0 +1,4 @@
+boundary_id,case,metric,value,unit,lower_limit,upper_limit,expected_validator_result,scenario_coverage,validator_passed
+BND-001,tank near empty,fill_pct,0.50000000,%,0.00000000,100.00000000,pass_boundary,tank_low_level,true
+BND-002,tank near full,fill_pct,99.50000000,%,0.00000000,100.00000000,pass_boundary,tank_high_level,true
+BND-003,pump near runout curve edge,flow_fraction_of_runout,0.99000000,fraction,0.00000000,1.00000000,pass_boundary,pump_curve_edge,true

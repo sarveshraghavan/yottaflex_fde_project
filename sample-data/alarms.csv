@@ -1,0 +1,16 @@
+alarm_id,timestamp_utc,sim_run_id,facility_id,line_id,alarm_type,primary_signal,trigger_telemetry_id,window_effect_abs,noise_sigma_window,detector_rule,status
+ALM-0000001,2026-01-01T00:06:00Z,SIM-2026-000006,FAC-001,LINE-001,abnormal_window_signal,paired_flow_difference,TLM-000006-0000227,11.73944818,1.50111070,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000002,2026-01-01T00:06:00Z,SIM-2026-000007,FAC-001,LINE-001,abnormal_window_signal,pipe_pressure_drop,TLM-000007-0000230,136.30297493,1.15470054,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000003,2026-01-01T00:06:00Z,SIM-2026-000008,FAC-001,LINE-001,abnormal_window_signal,pump_discharge_pressure,TLM-000008-0000228,-24.59177700,0.81649658,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000004,2026-01-01T00:06:00Z,SIM-2026-000009,FAC-001,LINE-001,abnormal_window_signal,valve_pressure_drop,TLM-000009-0000229,30.06091678,1.15470054,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000005,2026-01-01T00:06:00Z,SIM-2026-000011,FAC-001,LINE-001,abnormal_window_signal,paired_flow_difference,TLM-000011-0000227,16.05479160,1.50111070,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000006,2026-01-01T00:07:00Z,SIM-2026-000017,FAC-002,LINE-008,abnormal_window_signal,paired_flow_difference,TLM-000017-0000272,11.59744393,1.38975846,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000007,2026-01-01T00:07:00Z,SIM-2026-000018,FAC-002,LINE-008,abnormal_window_signal,pipe_pressure_drop,TLM-000018-0000275,136.16093728,1.06904497,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000008,2026-01-01T00:07:00Z,SIM-2026-000019,FAC-002,LINE-008,abnormal_window_signal,pump_discharge_pressure,TLM-000019-0000273,-24.45560054,0.75592895,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000009,2026-01-01T00:07:00Z,SIM-2026-000020,FAC-002,LINE-008,abnormal_window_signal,valve_pressure_drop,TLM-000020-0000274,29.94555253,1.06904497,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000010,2026-01-01T00:07:00Z,SIM-2026-000022,FAC-002,LINE-008,abnormal_window_signal,paired_flow_difference,TLM-000022-0000272,15.92814448,1.38975846,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000011,2026-01-01T00:08:00Z,SIM-2026-000028,FAC-003,LINE-015,abnormal_window_signal,paired_flow_difference,TLM-000028-0000282,11.71454623,1.30000000,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000012,2026-01-01T00:08:00Z,SIM-2026-000029,FAC-003,LINE-015,abnormal_window_signal,pipe_pressure_drop,TLM-000029-0000285,135.90072120,1.00000000,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000013,2026-01-01T00:08:00Z,SIM-2026-000030,FAC-003,LINE-015,abnormal_window_signal,pump_discharge_pressure,TLM-000030-0000283,-24.57385464,0.70710678,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000014,2026-01-01T00:08:00Z,SIM-2026-000031,FAC-003,LINE-015,abnormal_window_signal,valve_pressure_drop,TLM-000031-0000284,22.91100192,1.00000000,abs(window_mean_effect) >= 3 * noise_sigma_window,open
+ALM-0000015,2026-01-01T00:08:00Z,SIM-2026-000033,FAC-003,LINE-015,abnormal_window_signal,paired_flow_difference,TLM-000033-0000282,16.22335035,1.30000000,abs(window_mean_effect) >= 3 * noise_sigma_window,open

@@ -1,0 +1,79 @@
+{
+  "alarm_count": 15,
+  "alarm_telemetry_references_valid": true,
+  "alarm_vs_detectable_on_labeled_windows": {
+    "agreement_rate": 1.0,
+    "false_negative": 0,
+    "false_positive": 0,
+    "true_negative": 3,
+    "true_positive": 15
+  },
+  "all_boundary_fixtures_pass_range_checks": true,
+  "all_boundary_tanks_within_capacity": true,
+  "all_negative_fixtures_flagged": true,
+  "all_run_ids_on_telemetry": true,
+  "all_scenarios_have_ground_truth": true,
+  "boundary_fixture_count": 3,
+  "boundary_run_count": 9,
+  "compound_fault_runs": 3,
+  "config": {
+    "detectability_sigma": 3.0,
+    "noise_note": "Synthetic independent Gaussian sensor noise; assumptions only, not measured plant noise.",
+    "noise_relative_sigma": {
+      "flow": 0.02,
+      "level": 0.005,
+      "pressure": 0.01
+    },
+    "seed": 20261022
+  },
+  "event_and_truth_run_ids_valid": true,
+  "event_rows": 36,
+  "facility_count": 3,
+  "facility_graphs_connected": true,
+  "fault_free_residual_false_positive_count": 1,
+  "fault_free_residual_false_positive_rate": 0.00943396,
+  "fault_free_residual_sample_count": 106,
+  "fault_free_run_count": 15,
+  "fault_run_count": 18,
+  "flow_balance_fixture_clearance_ratio": 3.0,
+  "flow_balance_fixture_injected_residual_m3_h": 75.18037354,
+  "flow_balance_fixture_noise_tolerance_m3_h": 25.06012451,
+  "flow_balance_tolerance_method": "Two-sided 99% Gaussian envelope from propagated independent inlet/outlet flow-sensor noise summed across the facility; not an empirically calibrated 3-sigma residual limit.",
+  "foreign_keys_valid": true,
+  "ground_truth_rows": 18,
+  "lines_per_facility": 7,
+  "max_true_network_residual_m3_h": 0.0,
+  "measured_network_residual_abs_m3_h": {
+    "max": 26.57886729,
+    "mean": 7.48619924,
+    "p95": 13.90658584
+  },
+  "negative_fixture_count": 5,
+  "primary_keys_unique": true,
+  "pump_count": 20,
+  "pump_edge_mean_flow_fraction_of_available_runout": 0.94179411,
+  "pump_edge_run_count": 3,
+  "run_count": 33,
+  "sensor_fault_is_not_process_fault": true,
+  "step_seconds": 60,
+  "tank_count": 30,
+  "tank_level_range_m": {
+    "max": 47.54247686,
+    "min": 2.46838765
+  },
+  "telemetry_rows": 10000,
+  "telemetry_rows_difference": 0,
+  "telemetry_rows_exact": true,
+  "telemetry_rows_target": 10000,
+  "time_steps_per_run_range": {
+    "max": 8,
+    "min": 6
+  },
+  "true_network_balance_reconciles": true,
+  "valve_count": 60,
+  "valves_per_line_range": {
+    "max": 4,
+    "min": 2
+  },
+  "valves_per_pump_average": 3.0
+}

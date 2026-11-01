@@ -1,0 +1,23 @@
+# Python environments and bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Full or intermediate generated outputs; sample-data/ is intentionally kept
+/data/
+/data-preview/
+/line-physics-preview/
+/network-*/
+/repro-*/
+/tmp/
+/temp/
+
+# Machine-specific/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.env
+.env.*

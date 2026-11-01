@@ -1,0 +1,4 @@
+facility_id,name,lifecycle_state
+FAC-001,Facility 1,active
+FAC-002,Facility 2,active
+FAC-003,Facility 3,active
