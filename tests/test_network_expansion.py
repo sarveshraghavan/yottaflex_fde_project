@@ -53,6 +53,8 @@ class NetworkExpansionTests(unittest.TestCase):
             self.assertTrue(summary["all_run_ids_on_telemetry"])
             self.assertTrue(summary["primary_keys_unique"])
             self.assertTrue(summary["foreign_keys_valid"])
+            self.assertTrue(summary["pipe_node_references_valid"])
+            self.assertTrue(summary["line_terminal_bridges_consistent"])
             self.assertTrue(summary["event_and_truth_run_ids_valid"])
             self.assertTrue(summary["all_negative_fixtures_flagged"])
             self.assertTrue(summary["all_boundary_fixtures_pass_range_checks"])
@@ -69,6 +71,8 @@ class NetworkExpansionTests(unittest.TestCase):
         self.assertEqual(len(valves), 60)
         self.assertEqual(len(lines), 20)
         self.assertEqual(len(sensors), 130)
+        self.assertEqual(sensors[0]["sensor_id"], "SNS-001")
+        self.assertTrue(all(len(s["sensor_id"]) == 7 and s["sensor_id"].startswith("SNS-") and s["sensor_id"][4:].isdigit() for s in sensors))
         for facility in facilities:
             local_valves = [v for v in valves if v["facility_id"] == facility["facility_id"]]
             self.assertEqual(len(local_valves), 20)
@@ -91,6 +95,9 @@ class NetworkExpansionTests(unittest.TestCase):
             result = validate_sqlite(out)
             self.assertTrue(result["valid"])
             self.assertEqual(result["telemetry_rows"], 10000)
+            self.assertEqual(result["invalid_polymorphic_pipe_nodes"], 0)
+            self.assertEqual(result["invalid_sensor_id_formats"], 0)
+            self.assertEqual(result["inconsistent_line_terminal_bridges"], 0)
             self.assertTrue(result["json_feature_export_has_no_truth_tables"])
             self.assertTrue(result["json_truth_export_is_separate"])
 

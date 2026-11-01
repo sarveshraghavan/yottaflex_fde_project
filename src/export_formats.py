@@ -77,6 +77,12 @@ UNIQUE_COLUMNS = {
     "line_valves": [("line_id", "sequence_order")],
     "line_pipes": [("line_id", "sequence_order")],
 }
+ENUM_CHECKS = {
+    "lifecycle_state": ("planned", "active", "maintenance", "out_of_service", "retired"),
+}
+COLUMN_CHECKS = {
+    ("sensors", "sensor_id"): "substr(\"sensor_id\",1,4)='SNS-' AND length(\"sensor_id\")>=7 AND substr(\"sensor_id\",5) NOT GLOB '*[^0-9]*'",
+}
 
 
 def quote(value):
@@ -135,6 +141,12 @@ def build_exports(out: Path, seed: int, command: str, summary: dict):
         if not columns:
             continue
         definitions = [f'"{column}" {sql_type(column)}' + (" NOT NULL" if column in REQUIRED_COLUMNS.get(name, set()) else "") for column in columns]
+        for column in columns:
+            if column in ENUM_CHECKS:
+                allowed = ", ".join(quote(value) for value in ENUM_CHECKS[column])
+                definitions.append(f'CHECK ("{column}" IN ({allowed}))')
+            if (name, column) in COLUMN_CHECKS:
+                definitions.append(f'CHECK ({COLUMN_CHECKS[(name, column)]})')
         keys = PRIMARY_KEYS.get(name, [])
         if keys:
             definitions.append("PRIMARY KEY (" + ", ".join(f'"{key}"' for key in keys) + ")")

@@ -10,7 +10,7 @@ This dictionary describes the generated network dataset. CSV values are text; co
 |---|---|---|---|---|
 | `facility_id` | string | yes | `FAC-NNN` | Primary key; referenced by all facility equipment. |
 | `name` | string | yes | Non-empty | Human-readable facility label. |
-| `lifecycle_state` | enum | yes | `active` | Must be a supported lifecycle value. |
+| `lifecycle_state` | enum | yes | `planned`, `active`, `maintenance`, `out_of_service`, `retired` | Lifecycle transitions are listed below. Generated rows currently use `active`. |
 
 ### 2. Pump — `pumps.csv`
 
@@ -21,7 +21,7 @@ This dictionary describes the generated network dataset. CSV values are text; co
 | `line_id` | string | yes | Line ID | FK to Line; one pump per line. |
 | `nominal_flow_m3_h` | decimal | yes | m³/h, positive | Nominal flow must be > 0. |
 | `shutoff_head_m` | decimal | yes | m, positive | Pump head at zero flow; must be > 0. |
-| `lifecycle_state` | enum | yes | `active` | Must be a supported lifecycle value. |
+| `lifecycle_state` | enum | yes | `planned`, `active`, `maintenance`, `out_of_service`, `retired` | Lifecycle transitions are listed below. Generated rows currently use `active`. |
 
 ### 3. Tank — `tanks.csv`
 
@@ -33,7 +33,7 @@ This dictionary describes the generated network dataset. CSV values are text; co
 | `capacity_m3` | decimal | yes | m³, positive | Must be > 0. |
 | `area_m2` | decimal | yes | m², positive | Must be > 0; used to compute level. |
 | `initial_volume_m3` | decimal | yes | m³, between 0 and capacity | Must be within the tank capacity. |
-| `lifecycle_state` | enum | yes | `active` | Must be a supported lifecycle value. |
+| `lifecycle_state` | enum | yes | `planned`, `active`, `maintenance`, `out_of_service`, `retired` | Lifecycle transitions are listed below. Generated rows currently use `active`. |
 
 ### 4. Valve — `valves.csv`
 
@@ -45,7 +45,7 @@ This dictionary describes the generated network dataset. CSV values are text; co
 | `normal_opening_pct` | decimal | yes | percent, 0–100 | Must be within the physical range. |
 | `sequence_order` | integer | yes | Positive integer | Unique within its line; determines series order. |
 | `resistance_k` | decimal | yes | m/(m³/h)² in the simplified model | Must be nonnegative. |
-| `lifecycle_state` | enum | yes | `active` | Must be a supported lifecycle value. |
+| `lifecycle_state` | enum | yes | `planned`, `active`, `maintenance`, `out_of_service`, `retired` | Lifecycle transitions are listed below. Generated rows currently use `active`. |
 
 ### 5. Pipe — `pipes.csv`
 
@@ -59,25 +59,30 @@ This dictionary describes the generated network dataset. CSV values are text; co
 | `resistance_k` | decimal | yes | m/(m³/h)² | Must be nonnegative. |
 | `edge_role` | enum | yes | `line_segment`, `buffer_manifold` | Describes topology edge purpose. |
 | `sequence_order` | integer | no | Positive integer or blank | Present for line segments; optional for manifold edges. |
-| `lifecycle_state` | enum | yes | `active` | Must be a supported lifecycle value. |
+| `lifecycle_state` | enum | yes | `planned`, `active`, `maintenance`, `out_of_service`, `retired` | Lifecycle transitions are listed below. Generated rows currently use `active`. |
 
-### 6. Line — `lines.csv`
+### 6. Alarm — `alarms.csv`
 
 | Field | Type | Required | Allowed values / units | Unique / validation |
 |---|---|---|---|---|
-| `line_id` | string | yes | `LINE-NNN` | Primary key. |
-| `facility_id` | string | yes | Facility ID | FK to Facility. |
-| `source_tank_id` | string | yes | Tank ID | FK to Tank in the same facility. |
-| `destination_tank_id` | string | yes | Tank ID | FK to Tank; distinct from source tank. |
-| `pump_id` | string | yes | Pump ID | FK to Pump; one pump per line. |
-| `valve_id` | string | yes | Valve ID | FK to the final valve in this series train; full train is in `line_valves.csv`. |
-| `pipe_id` | string | yes | Pipe ID | FK to the outlet segment; full route is in `line_pipes.csv`. |
+| `alarm_id` | string | yes | `ALM-NNNNNNN` | Primary key. |
+| `timestamp_utc` | timestamp | yes | ISO-8601 UTC ending in `Z` | Trigger time within its run. |
+| `sim_run_id` | string | yes | SimulationRun ID | FK to SimulationRun. |
+| `facility_id` | string | yes | Facility ID | FK to Facility and consistent with run/line. |
+| `line_id` | string | no | Line ID or blank | Optional FK to Line. |
+| `alarm_type` | enum | yes | `abnormal_window_signal` | Alarm came from the labeled-window signal rule. |
+| `primary_signal` | enum | yes | `paired_flow_difference`, `pipe_pressure_drop`, `pump_discharge_pressure`, `valve_pressure_drop` | Signal tested by the rule. |
+| `trigger_telemetry_id` | string | yes | Telemetry ID | FK to the evidence telemetry record. |
+| `window_effect_abs` | decimal | yes | Signal's unit | Finite absolute measured window effect. |
+| `noise_sigma_window` | decimal | yes | Signal's unit | Positive/zero noise standard error for the run window. |
+| `detector_rule` | string | yes | Documented 3σ window-mean rule | Must match the run's configured detection sigma. |
+| `status` | enum | yes | `open` | Alarm lifecycle status. |
 
 ### 7. Sensor — `sensors.csv`
 
 | Field | Type | Required | Allowed values / units | Unique / validation |
 |---|---|---|---|---|
-| `sensor_id` | string | yes | `SNS-NNNNN` | Primary key. |
+| `sensor_id` | string | yes | `SNS-001` format (three-digit minimum; expands naturally above 999) | Primary key. |
 | `facility_id` | string | yes | Facility ID | FK to Facility. |
 | `line_id` | string | no | Line ID or blank for tank-level sensor | Optional FK to Line. |
 | `entity_type` | enum | yes | `pump`, `pipe`, `valve_train`, `tank` | Measurement target kind. |
@@ -154,24 +159,63 @@ erDiagram
   OPERATING_MODE ||--o{ VALVE_MODE_STATE : governs
   TELEMETRY ||--o| ALARM : triggers
   SIMULATION_RUN ||--o{ GROUND_TRUTH : labeled_by
+  SIMULATION_RUN ||--o{ EQUIPMENT_EVENT : records
+  GROUND_TRUTH ||--o{ EQUIPMENT_EVENT : causes
 ```
 
-`line_valves.csv` and `line_pipes.csv` are many-to-many bridges; the line row's `valve_id`/`pipe_id` are convenience references to the final valve and outlet pipe. The valve/mode bridge is `valve_mode_states.csv`; its key includes valve, mode, and effective start. Both mode and bridge rows use effective-from/to timestamps, where end is optional. Tank sensors have no `line_id`; pipe-mounted sensors have a `pipe_id` and may have no `entity_id`. Tank and line links on telemetry are therefore optional depending on sensor location. `Alarm` has one required triggering telemetry row and an optional line association in the general schema. Pipe endpoints are polymorphic node references and must be validated against the equipment union in the same facility.
+`line_valves.csv` and `line_pipes.csv` are the complete many-to-many route bridges. `lines.csv` also repeats one terminal `valve_id` and outlet `pipe_id` for convenient lookups; these are intentionally redundant references and must equal the final sequence entries in the bridges. The valve/mode bridge is `valve_mode_states.csv`; its key includes valve, mode, and effective start. Both mode and bridge rows use effective-from/to timestamps, where end is optional. Tank sensors have no `line_id`; pipe-mounted sensors have a `pipe_id` and may have no `entity_id`. Tank and line links on telemetry are therefore optional depending on sensor location. `Alarm` has one required triggering telemetry row and an optional line association in the general schema. Pipe endpoints are polymorphic node references: because `from_node_id` and `to_node_id` may identify a tank, pump, or valve, they cannot use one ordinary FK. The generator and SQLite validator resolve each endpoint against the union of those three equipment tables and require both nodes to belong to the pipe's facility and differ from each other.
 
 ## Supporting and evaluation tables
 
 | File | Key fields and validation |
 |---|---|
+| `lines.csv` | `line_id` primary key; source/destination tank, pump, terminal valve, and outlet pipe references; source and destination must differ and belong to the same facility. Terminal valve/outlet pipe duplicate the last bridge rows by design. |
 | `line_valves.csv`, `line_pipes.csv` | Composite keys (`line_id`, asset ID); both columns are required FKs; sequence order is positive and unique per line. |
 | `valve_mode_states.csv` | Composite temporal key (`valve_id`, `operating_mode_id`, `effective_from_utc`); state is `open` in the nominal mode; effective end is optional. |
-| `alarms.csv` | `alarm_id` primary key; references run, facility, optional line, and triggering telemetry. `status` is `open`. |
 | `ground_truth.csv` | `scenario_id` primary key; references run, evidence sensor, and evidence telemetry. Contains fault type/parameters, process-fault flag, effect, window noise, `detectable`, and `alarm_detected`; keep separate from features. Sensor faults set `is_process_fault=false`. |
 | `process_truth.csv` | `telemetry_id` primary/FK; includes true value, injected noise, and sigma. Evaluation-only; never include in model features. |
-| `equipment_events.csv` | `event_id` primary key; references run and cause scenario. Captures state change and restoration. |
+| `equipment_events.csv` | `event_id` primary key; references run and cause scenario. Captures equipment operating-state change and restoration; field-level specification follows below. |
 | `network_balance.csv` | Composite key (timestamp, run, facility); true/measured residuals, flows, storage rate and tank levels. |
 | `fault_location_rules.csv` | Expected signal direction per fault/location; documentation rows, not telemetry. |
 | `negative_fixtures.csv` | `case_id` primary key; five isolated invalid examples and validator outcome. |
 | `boundary_fixtures.csv` | `boundary_id` primary key; three valid near-limit examples and range-check outcome. |
+
+The `lines.csv` fields are: `line_id` (required primary key), `facility_id` (required Facility FK), `source_tank_id` and `destination_tank_id` (required Tank FKs in that facility and distinct), `pump_id` (required Pump FK, one per line), and `valve_id`/`pipe_id` (required terminal Valve/Pipe FKs mirrored from the final `line_valves`/`line_pipes` sequence entries). The SQL/SQLite validator checks this terminal-reference redundancy.
+
+### Lifecycle states and transitions
+
+The `lifecycle_state` enum on facilities, tanks, pumps, valves, and pipes allows `planned`, `active`, `maintenance`, `out_of_service`, and `retired`. The generated sample currently sets every asset to `active`; lifecycle changes are supported schema states, not transitions emitted in this simulation.
+
+| From | Allowed next state | Meaning |
+|---|---|---|
+| `planned` | `active`, `retired` | Commission equipment or cancel planned equipment. |
+| `active` | `maintenance`, `out_of_service`, `retired` | Remove from normal service or retire. |
+| `maintenance` | `active`, `out_of_service`, `retired` | Return to service, remain unavailable, or retire. |
+| `out_of_service` | `active`, `maintenance`, `retired` | Restore, repair, or retire. |
+| `retired` | none | Terminal lifecycle state. |
+
+These lifecycle transitions are separate from the operating-condition events below.
+
+### EquipmentEvent — `equipment_events.csv`
+
+| Field | Type | Required | Allowed values / units | Unique / validation |
+|---|---|---|---|---|
+| `event_id` | string | yes | `EVT-NNNNNNN` | Primary key. |
+| `event_ts` | timestamp | yes | ISO-8601 UTC ending in `Z` | Must fall within the associated run. |
+| `entity_type` | enum | yes | `pump`, `valve`, `pipe`, `sensor` | Determines the entity ID namespace. |
+| `entity_id` | string | yes | Corresponding equipment/sensor ID | Polymorphic reference; must resolve within the event's facility/run. |
+| `event_type` | enum | yes | `state_change` | Current generator emits state changes. |
+| `from_state` | enum/string | yes | State table below | Must be a legal transition for `entity_type`. |
+| `to_state` | enum/string | yes | State table below | Must differ from `from_state`. |
+| `sim_run_id` | string | yes | SimulationRun ID | FK to SimulationRun. |
+| `cause_scenario_id` | string | yes | GroundTruth scenario ID | FK to GroundTruth. |
+
+| Entity | Fault-window transition | Restoration transition |
+|---|---|---|
+| Pump | `running` → `degraded` | `degraded` → `running` |
+| Valve | `open` → `partial` | `partial` → `open` |
+| Pipe | `normal` → `leaking`, `blocked`, or `leaking_blocked` | Fault state → `normal` |
+| Sensor | `good` → `stuck_at` | `stuck_at` → `good` |
 
 ## SQL, JSON, validation, and limits
 

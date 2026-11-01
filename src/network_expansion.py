@@ -108,7 +108,7 @@ def topology_is_connected(facility_id, tanks, pumps, valves, pipes):
         if edge["facility_id"] == facility_id:
             adjacency[edge["from_node_id"]].add(edge["to_node_id"])
             adjacency[edge["to_node_id"]].add(edge["from_node_id"])
-    if not nodes:
+    if not nodes or not pipe_node_references_valid(tanks, pumps, valves, pipes):
         return False
     reached, todo = set(), [next(iter(nodes))]
     while todo:
@@ -118,6 +118,20 @@ def topology_is_connected(facility_id, tanks, pumps, valves, pipes):
         reached.add(node)
         todo.extend(adjacency[node] - reached)
     return reached == nodes
+
+
+def pipe_node_references_valid(tanks, pumps, valves, pipes):
+    """Validate polymorphic pipe endpoints against this facility's tank/pump/valve IDs."""
+    node_facility = {}
+    for rows, id_column in ((tanks, "tank_id"), (pumps, "pump_id"), (valves, "valve_id")):
+        node_facility.update({row[id_column]: row["facility_id"] for row in rows})
+    return all(
+        edge["from_node_id"] in node_facility
+        and edge["to_node_id"] in node_facility
+        and node_facility[edge["from_node_id"]] == edge["facility_id"]
+        and node_facility[edge["to_node_id"]] == edge["facility_id"]
+        for edge in pipes
+    )
 
 
 def equipment(facility_count, pump_count, tank_count, valve_count):
@@ -177,11 +191,11 @@ def equipment(facility_count, pump_count, tank_count, valve_count):
             ]
             for metric, entity_type, position, entity_id, pipe_id in locations:
                 sensor_n += 1
-                sensors.append({"sensor_id": f"SNS-{sensor_n:05d}", "facility_id": facility_id, "line_id": this_line, "entity_type": entity_type, "entity_id": entity_id, "node_id": entity_id if entity_id else "", "pipe_id": pipe_id, "position": position, "metric": metric, "unit": "m3/h" if metric == "flow" else "kPa"})
+                sensors.append({"sensor_id": f"SNS-{sensor_n:03d}", "facility_id": facility_id, "line_id": this_line, "entity_type": entity_type, "entity_id": entity_id, "node_id": entity_id if entity_id else "", "pipe_id": pipe_id, "position": position, "metric": metric, "unit": "m3/h" if metric == "flow" else "kPa"})
         for tank_id in local_tanks:
             sensor_n += 1
             tank = next(t for t in tanks if t["tank_id"] == tank_id)
-            sensors.append({"sensor_id": f"SNS-{sensor_n:05d}", "facility_id": facility_id, "line_id": "", "entity_type": "tank", "entity_id": tank_id, "node_id": tank_id, "pipe_id": "", "position": "level", "metric": "level", "unit": "m", "initial_level_m": 50.0 * tank["initial_volume_m3"] / tank["capacity_m3"]})
+            sensors.append({"sensor_id": f"SNS-{sensor_n:03d}", "facility_id": facility_id, "line_id": "", "entity_type": "tank", "entity_id": tank_id, "node_id": tank_id, "pipe_id": "", "position": "level", "metric": "level", "unit": "m", "initial_level_m": 50.0 * tank["initial_volume_m3"] / tank["capacity_m3"]})
     return facilities, tanks, pumps, valves, pipes, lines, sensors
 
 
@@ -451,6 +465,11 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
     }
     alarm_detectability["agreement_rate"] = sum(expected == actual for expected, actual in alarm_signal_pairs) / len(alarm_signal_pairs) if alarm_signal_pairs else 1.0
     edge_cases_flagged = all(r["validator_flagged"] == "true" for r in edge_cases)
+    line_bridge_consistent = all(
+        ln["valve_id"] == max((v for v in valves if v["line_id"] == ln["line_id"]), key=lambda v: v["sequence_order"])["valve_id"]
+        and ln["pipe_id"] == max((q for q in pipes if q["line_id"] == ln["line_id"]), key=lambda q: q["sequence_order"])["pipe_id"]
+        for ln in lines
+    )
     boundary_runs = [r for r in runs if json.loads(r["config_json"]).get("boundary_case", "none") != "none"]
     pump_edge_run_ids = {r["sim_run_id"] for r in runs if json.loads(r["config_json"]).get("boundary_case") == "boundary_pump_edge"}
     pump_edge_ratios = [
@@ -464,6 +483,8 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
         "primary_keys_unique": all(len(rows) == len({r[key] for r in rows}) for rows, key in [(facilities,"facility_id"),(tanks,"tank_id"),(pumps,"pump_id"),(valves,"valve_id"),(pipes,"pipe_id"),(lines,"line_id"),(sensors,"sensor_id"),(runs,"sim_run_id")]),
         "foreign_keys_valid": all(r["source_tank_id"] in equipment_ids and r["destination_tank_id"] in equipment_ids and r["pump_id"] in equipment_ids and r["valve_id"] in equipment_ids and r["pipe_id"] in equipment_ids for r in lines) and all((r["entity_id"] in equipment_ids if r["entity_id"] else r["pipe_id"] in equipment_ids) for r in sensors) and all(r["sensor_id"] in {s["sensor_id"] for s in sensors} and r["operating_mode_id"] == "MODE-001" for r in all_telemetry) and all(r["telemetry_id"] in telemetry_ids for r in all_process_truth),
         "facility_graphs_connected": all(topology_is_connected(f["facility_id"], tanks, pumps, valves, pipes) for f in facilities),
+        "pipe_node_references_valid": pipe_node_references_valid(tanks, pumps, valves, pipes),
+        "line_terminal_bridges_consistent": line_bridge_consistent,
         "all_run_ids_on_telemetry": all(r["sim_run_id"] in run_ids for r in all_telemetry),
         "event_and_truth_run_ids_valid": all(r["sim_run_id"] in run_ids for r in events + truth),
         "all_scenarios_have_ground_truth": len(truth) == facility_count * len(FAULT_SCENARIOS),

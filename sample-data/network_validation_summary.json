@@ -41,6 +41,7 @@
   "flow_balance_tolerance_method": "Two-sided 99% Gaussian envelope from propagated independent inlet/outlet flow-sensor noise summed across the facility; not an empirically calibrated 3-sigma residual limit.",
   "foreign_keys_valid": true,
   "ground_truth_rows": 18,
+  "line_terminal_bridges_consistent": true,
   "lines_per_facility": 7,
   "max_true_network_residual_m3_h": 0.0,
   "measured_network_residual_abs_m3_h": {
@@ -49,6 +50,7 @@
     "p95": 13.90658584
   },
   "negative_fixture_count": 5,
+  "pipe_node_references_valid": true,
   "primary_keys_unique": true,
   "pump_count": 20,
   "pump_edge_mean_flow_fraction_of_available_runout": 0.94179411,
