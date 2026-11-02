@@ -4,7 +4,7 @@
 
 - After the GitHub credentials were corrected, pushed `3d6979f` to `sarveshraghavan/yottaflex_fde_project` on `main`.
 - GitHub reports the repository visibility as public and the default branch as `main`; remote `main` matched the local commit at push time.
-- A fresh clone from the GitHub URL is being checked against the README workflow.
+- Cloned published `main` at `95106c1`. The README setup, sample validation, and all 23 tests passed before `data/` existed; full generation, SQLite/JSON validation, two-generation hash comparison, and all 23 tests then passed from that clone.
 
 ## 2026-11-02 — AI attribution and walkthrough answers
 
