@@ -2,6 +2,19 @@
 
 One deterministic, physics-based generator creates the plant assets, process truth, sensor readings, fault labels, alarms, and validation fixtures. All values are synthetic; no operating-plant data is used.
 
+> **Reviewer note:** the full 100,000-row dataset is intentionally generated on demand and is not committed because its SQL export exceeds GitHub's normal file-size warning limit. The committed 10,000-row `sample-data/` can be validated immediately; the exact command to regenerate the full dataset is below.
+
+## Quick review from a clean clone
+
+After the [setup](#setup), run these checks without generating the full `data/` directory:
+
+```powershell
+python src/validate_sqlite.py --data sample-data
+python -m unittest discover -s tests -v
+```
+
+To create the full target-scale files, run the command in [Generate the target dataset](#generate-the-target-dataset). To verify two independent full generations, run the command in [Reproducibility and checks](#reproducibility-and-checks).
+
 ## Setup
 
 Requires Python 3.10 or later. The generator, JSON/SQL exports, SQLite validation, and tests use only the Python standard library. `requirements.txt` records that there are no third-party packages to pin.
@@ -68,8 +81,10 @@ The SQLite validator loads `seed.sql` into an in-memory database, runs `PRAGMA f
 | `src/line_physics.py` | Reusable one-line steady-state hydraulic solver. |
 | `data/` | Full generated CSVs, `seed.sql`, feature `export.json`, `ground_truth.json`, summary, and manifest; Git-ignored. |
 | `sample-data/` | Checked-in starter-scale version of the same outputs. |
-| `docs/` | Data dictionary, ER diagram, and model assumptions. |
+| `docs/` | Design rationale, data dictionary, assumptions, AI use, prompt history, dev log, and walkthrough outline. |
 | `tests/` | Physics, topology, and deterministic generation tests. |
 | `requirements.txt`, `LICENSE`, `.gitignore` | Dependency declaration, reuse license, and generated/temp-file exclusions. |
 
 See [the data dictionary](docs/data_dictionary.md) for exported columns and relationships, and [the assumptions](docs/assumptions.md) for model details and limits.
+
+For why the model and data boundaries were chosen, see [the design rationale](docs/DESIGN.md). AI assistance is described in [AI usage](docs/AI_USAGE.md), and the project prompts and demo script are summarized in [prompt history](docs/prompt_history/README.md) and the [walkthrough outline](docs/WALKTHROUGH.md).
