@@ -1,30 +1,25 @@
 # How I used AI on this project
 
-I used Codex as my main coding assistant. It drafted most of the generator, solver integration, export and validation code, tests, and project documentation. That is substantial use, and I do not present the implementation as code I wrote unaided.
+I used both Claude and Codex. I relied heavily on AI for the implementation: Codex drafted most of the generator, solver integration, exports, validators, tests, and documentation. I did not write that code unaided.
 
-## Where AI helped
+## What each tool contributed
 
-Codex accelerated the first implementation and the repeated edit-and-check cycle: it drafted the Python components, tests, SQLite/JSON export logic, and documentation, then ran the generator, tests, SQLite checks, and reproducibility script in the project workspace. It also helped turn review comments into specific validator changes and regression checks.
+- **Claude:** design review, validation suggestions, and reviewer checklists. Its feedback focused on risks such as mass balance being near zero by construction, paired-flow noise, sensor placement, overly easy fault magnitudes, sweep thresholds, lifecycle/event coverage, redundant bridges, and submission completeness.
+- **Codex:** primary code drafting and local implementation. It translated the chosen design into Python, generated SQL/JSON/CSV outputs, added validators and tests, and ran the build, test, SQLite, and reproducibility commands in this workspace.
 
-## Who proposed what
+Claude and Codex both contributed suggestions; I chose which suggestions to adopt and directed the project scope and build sequence. The one-line solver approach, parameter-based process faults, paired inlet/outlet flow sensors, separate process-truth data, and the windowed detectability rule were design suggestions developed with AI assistance that I chose to use. The 3σ rule and noise percentages are modeling assumptions, not values from the brief or plant measurements.
 
-Codex proposed starting with a one-line hydraulic solver and making process faults change solver parameters. It also proposed paired inlet/outlet flow sensors for leak detection, a separate process-truth layer, a windowed noise-based `detectable` rule, a single generator for preview and full scale, and the initial expansion order. I chose to proceed with that approach and repeatedly steered the scope toward the brief's row counts, required entities, edge cases, documentation, and reviewability.
+## What I reviewed, changed, and checked
 
-The 3σ window threshold and the specific synthetic noise percentages are modeling choices developed with AI assistance. They are not supplied by the brief or supported by plant measurements. The code records them as assumptions; they should not be represented as operationally validated settings.
+I steered the work toward the brief's required scale, entities, edge cases, exports, and reviewer documentation. During review, I raised several points that changed the claims or checks:
 
-## What I reviewed and changed
+- I pushed back on treating the near-zero mass-balance residual as proof of realistic physics. The same solved flows update tank storage, so closure mainly checks bookkeeping; the design and README now say this.
+- I questioned an early report that treated a leak threshold of 1.0 as a minimum when it was the bottom of that sweep. The sweep was later extended down to 0.05. In the updated summary, the paired-flow crossing is bracketed between leak coefficients 1.25 and 1.5 under the assumed 2% sensor-noise floor; it remains a model result, not a measured detection limit.
+- I asked that paired-flow detectability account for noise from both sensors and that sensor locations, short run windows, reserve tanks, expected clean residual exceedances, lifecycle transitions, and bridge consistency be made explicit.
+- I directed the lifecycle review that added the rejected `retired → active` fixture and requested failure tests for invalid event transitions, broken chains, missing restoration, and a terminal bridge mismatch.
 
-I reviewed the proposed design and generated summaries, then pushed back on several claims or gaps:
-
-- I pointed out that near-zero mass-balance residual is partly guaranteed by using the solved flows to update tank storage. It is a bookkeeping check, not evidence that the physics is realistic; the design and README now say that.
-- I questioned a reported leak threshold of 1.0 because it was at the edge of the sweep. That result should be treated as censored unless the sweep continues below it.
-- I asked that paired-flow detectability include the combined noise of both sensors, and raised the need to account for sensor placement, short run windows, reserve tanks, alarm false exceedances, lifecycle state changes, and bridge consistency.
-- I directed the lifecycle review that led to the invalid `retired → active` fixture and requested event-chain, restoration, and bridge-mismatch failure tests.
-
-Codex executed the latest 23-test suite, sample and full SQLite validation, and the full reproducibility run. I reviewed the resulting logs and summaries in this session. The target-scale run reported exactly 100,000 telemetry rows, a maximum true residual of about 1.75 × 10⁻⁹ m³/h, and 6/1,049 (0.57%) fault-free samples beyond the modeled 99% residual envelope. The reproducibility script matched hashes and row counts across 25 outputs.
+Codex executed the checks in this workspace; I reviewed their results. The latest clean-clone run completed the README setup and verification commands. Before generating `data/`, sample SQLite validation and all 23 tests passed; then full generation, SQLite/JSON validation, the two-generation hash check, and all 23 tests passed. The target run produced exactly 100,000 telemetry rows, a maximum true residual of about 1.75 × 10⁻⁹ m³/h, and 6/1,049 (0.57%) fault-free residual samples outside the assumed 99% envelope. Reproducibility matched hashes and row counts across 25 outputs.
 
 ## What I have not verified
 
-I have not compared the synthetic model or its noise assumptions with real plant measurements, nor verified that these thresholds generalize to a real facility. I have not independently rehearsed or presented the walkthrough. I did complete a clean-clone check: the sample validator and 23 tests passed before `data/` existed, then the full README generation, validation, JSON, reproducibility, and test commands passed. The full output was generated locally, but no GitHub push has succeeded yet because GitHub returned HTTP 403 for the configured repository URL.
-
-All generated process values, readings, events, alarms, and labels are synthetic. No real plant records or third-party operational dataset were used.
+I have not compared the synthetic model, noise assumptions, or thresholds with real plant measurements, and I do not know whether these settings generalize to a real facility. I have not independently rehearsed or presented the walkthrough. The GitHub push has not succeeded: GitHub returned HTTP 403 for the configured repository URL and authenticated account. No generated value is real plant data; all assets, scenarios, readings, events, alarms, and labels are synthetic.

@@ -12,5 +12,6 @@ This is a concise record of the main instructions and review questions that shap
 8. **Review refinements:** asked to scrutinize run duration, false alarms, tolerance derivation, reserve tanks, redundant Line/bridge references, polymorphic pipe endpoints, and sensor identifier width.
 9. **Lifecycle validation:** asked to validate allowed equipment-event transitions, event chaining and restoration, and to add an invalid `retired → active` lifecycle fixture.
 10. **Reviewer readiness:** requested visible design reasoning, a clean-clone test, clarity about the ignored full dataset, and supporting AI-use and prompt-history documentation.
+11. **Push and final disclosure:** provided the intended GitHub URL and asked for a no-force push, then a clean-clone verification of the README workflow. Also requested accurate attribution of Claude's design reviews/checklists and Codex's implementation work, this conversation in the prompt history, and walkthrough preparation for the solver choice, residual threshold, alarm-check limitations, AI corrections, and a future operating-change what-if.
 
 See [AI usage](../AI_USAGE.md), [design rationale](../DESIGN.md), and the [project README](../../README.md) for the resulting decisions and checks.

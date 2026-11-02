@@ -1,5 +1,11 @@
 # Development log
 
+## 2026-11-02 — AI attribution and walkthrough answers
+
+- Updated `AI_USAGE.md` to credit Claude for design reviews, validation suggestions, and checklists, and Codex for most code drafting, implementation, and local verification. Separated those contributions from my scope choices and review feedback.
+- Added the current push/access and reviewer-readiness discussion to the prompt-history summary.
+- Added walkthrough Q&A notes: the code uses bisection rather than `brentq`; the residual threshold derivation; why alarm agreement is not an independent benchmark; examples of corrected AI claims; and a proposed valve-opening what-if as the next operating-change feature.
+
 ## 2026-11-02 — AI-use clarity and negative tests
 
 - Rewrote the AI-use account to identify which architecture choices Codex proposed, which scope and review decisions I made, and what remains unverified.
