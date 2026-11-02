@@ -6,7 +6,7 @@ The project brief asks for a reproducible synthetic dataset for an industrial fl
 
 This repository implements one deterministic generator at both starter and target scale. The checked-in `sample-data/` has 10,000 telemetry rows so reviewers can inspect a manageable dataset. Full outputs are generated into the ignored `data/` directory using the command in the README. The model is a prototype for dataset generation and fault-signature experiments, not a digital twin or an operational alarm product.
 
-Deliberately out of scope are real facility data, transient hydraulics and water hammer, calibrated pump/valve curves, diurnal demand, a general-purpose online alarm detector, and measured sensor-noise distributions.
+Deliberately out of scope are real facility data, transient hydraulics and water hammer, calibrated pump/valve curves, diurnal demand, a general-purpose online alarm detector, measured sensor-noise distributions, and ordinary operating-change schedules such as demand, setpoint, or operating-mode transitions. The current runs use one nominal operating mode and focus on fault scenarios. Operating-change simulation is deferred so the first deliverable can establish repeatable fault signatures and exact scale; it remains a gap against the brief's broader objective.
 
 ## Key decisions
 
@@ -27,9 +27,9 @@ Deliberately out of scope are real facility data, transient hydraulics and water
 
 ## Testing and validation approach
 
-The test suite covers the one-line physics signatures, tank bounds and determinism, golden operating-point values, topology allocation/connectivity, exact row planning, sensor-fault separation, and deterministic file output. The generator also writes isolated invalid and boundary fixtures. The SQLite validator loads the generated SQL seed and checks foreign keys, joins, leakage boundaries, polymorphic pipe endpoints, sensor IDs, bridge redundancy in both directions, and equipment-event transitions/chains/restorations. `src/repro_network.py` generates twice and compares row counts and SHA-256 hashes for every output, including SQL, both JSON exports, and the validation summary.
+The test suite covers the one-line physics signatures, tank bounds and determinism, golden operating-point values, topology allocation/connectivity, exact row planning, sensor-fault separation, and deterministic file output. Failure-path tests reject a retired-to-active lifecycle transition, an illegal equipment state change, a broken event chain, a missing restoration, and a terminal valve/bridge mismatch. The generator also writes isolated invalid and boundary fixtures. The SQLite validator loads the generated SQL seed and checks foreign keys, joins, leakage boundaries, polymorphic pipe endpoints, sensor IDs, bridge redundancy in both directions, and equipment-event transitions/chains/restorations. `src/repro_network.py` generates twice and compares row counts and SHA-256 hashes for every output, including SQL, both JSON exports, and the validation summary.
 
-Reproduce the checks with the commands in the README. On the default 100,000-row configuration, the test suite contains 18 tests.
+Reproduce the checks with the commands in the README. On the default configuration, the test suite contains 23 tests.
 
 ## Limitations
 
@@ -41,6 +41,7 @@ Reproduce the checks with the commands in the README. On the default 100,000-row
 - Runs last about an hour, so there is no diurnal cycle. The pump degradation is an immediate 10% head reduction, not slow wear.
 - Reserve tanks remain at configured levels. Partial valve and blockage signatures depend on having pressure observations at the relevant sides of the restriction.
 - The labeled-window alarm check reuses the same effect/noise window logic as `detectable`; it is not an independent detector and should not be reported as unbiased precision/recall.
+- Ordinary operating changes such as demand/setpoint schedules are not simulated; all runs use the nominal mode apart from boundary and fault cases.
 - A full clean-run detector, field-calibrated thresholds, and a benchmark against measured fault data have not been built.
 
 ## Evidence that the implementation works
@@ -53,7 +54,7 @@ For seed `20261022` at the target scale, the generated summary reports:
 - all six invalid fixtures flagged, including the invalid lifecycle transition, and all three boundary fixtures in range;
 - valid equipment-event transitions and per-run chains, with every fault transition restored at run end;
 - zero foreign-key violations and zero mismatches/orphans in the line/valve/pipe bridge checks;
-- **18 passing tests**; and
+- **23 passing tests**, including explicit failure-path coverage for lifecycle, event, restoration, and bridge validation; and
 - matching row counts and hashes across all **25 generated output files** in the reproducibility check.
 
 These results establish repeatability and internal checks for this model. They do not establish that its hydraulic assumptions match a real installation.

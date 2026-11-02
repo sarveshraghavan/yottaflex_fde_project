@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.network_expansion import FAULT_SCENARIOS, SCENARIOS, equipment, plan_exact_run_steps, topology_is_connected, write_network
+from src.network_expansion import FAULT_SCENARIOS, SCENARIOS, equipment, equipment_event_checks, lifecycle_transition_allowed, plan_exact_run_steps, topology_is_connected, write_network
 from src.validate_sqlite import validate as validate_sqlite
 
 
@@ -112,6 +112,44 @@ class NetworkExpansionTests(unittest.TestCase):
             self.assertTrue(result["invalid_lifecycle_transition_fixture_flagged"])
             self.assertTrue(result["json_feature_export_has_no_truth_tables"])
             self.assertTrue(result["json_truth_export_is_separate"])
+
+    def test_lifecycle_validator_rejects_retired_reactivation(self):
+        self.assertFalse(lifecycle_transition_allowed("retired", "active"))
+        self.assertTrue(lifecycle_transition_allowed("maintenance", "active"))
+
+    def test_equipment_event_validator_rejects_disallowed_transition(self):
+        event = {"event_id":"EVT-1", "event_ts":"2026-01-01T00:00:00Z", "entity_type":"pump", "entity_id":"PUMP-1", "event_type":"state_change", "from_state":"running", "to_state":"maintenance", "sim_run_id":"SIM-1", "cause_scenario_id":"SCN-1"}
+        result = equipment_event_checks([event], {"SIM-1":"2026-01-01T00:01:00Z"})
+        self.assertFalse(result["transitions_valid"])
+
+    def test_equipment_event_validator_rejects_broken_chain(self):
+        events = [
+            {"event_id":"EVT-1", "event_ts":"2026-01-01T00:00:00Z", "entity_type":"pump", "entity_id":"PUMP-1", "event_type":"state_change", "from_state":"running", "to_state":"degraded", "sim_run_id":"SIM-1", "cause_scenario_id":"SCN-1"},
+            {"event_id":"EVT-2", "event_ts":"2026-01-01T00:00:30Z", "entity_type":"pump", "entity_id":"PUMP-1", "event_type":"state_change", "from_state":"running", "to_state":"degraded", "sim_run_id":"SIM-1", "cause_scenario_id":"SCN-1"},
+            {"event_id":"EVT-3", "event_ts":"2026-01-01T00:01:00Z", "entity_type":"pump", "entity_id":"PUMP-1", "event_type":"state_change", "from_state":"degraded", "to_state":"running", "sim_run_id":"SIM-1", "cause_scenario_id":"SCN-1"},
+        ]
+        result = equipment_event_checks(events, {"SIM-1":"2026-01-01T00:01:00Z"})
+        self.assertTrue(result["transitions_valid"])
+        self.assertFalse(result["chains_valid"])
+
+    def test_equipment_event_validator_rejects_missing_run_end_restoration(self):
+        event = {"event_id":"EVT-1", "event_ts":"2026-01-01T00:00:00Z", "entity_type":"pump", "entity_id":"PUMP-1", "event_type":"state_change", "from_state":"running", "to_state":"degraded", "sim_run_id":"SIM-1", "cause_scenario_id":"SCN-1"}
+        result = equipment_event_checks([event], {"SIM-1":"2026-01-01T00:01:00Z"})
+        self.assertFalse(result["fault_events_restored"])
+
+    def test_sqlite_validator_flags_line_terminal_bridge_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            write_network(out, seed=20261022, telemetry_rows_target=10000)
+            seed_path = out / "seed.sql"
+            seed = seed_path.read_text(encoding="utf-8")
+            original = "VALUES ('LINE-001', 'FAC-001', 'TANK-001', 'TANK-002', 'PUMP-001', 'VALVE-003', 'PIPE-013');"
+            corrupted = "VALUES ('LINE-001', 'FAC-001', 'TANK-001', 'TANK-002', 'PUMP-001', 'VALVE-006', 'PIPE-013');"
+            self.assertIn(original, seed)
+            seed_path.write_text(seed.replace(original, corrupted, 1), encoding="utf-8")
+            result = validate_sqlite(out)
+            self.assertEqual(result["inconsistent_line_terminal_bridges"], 1)
+            self.assertFalse(result["valid"])
 
     def test_sensor_fault_changes_reading_without_changing_process_truth(self):
         with tempfile.TemporaryDirectory() as tmp:

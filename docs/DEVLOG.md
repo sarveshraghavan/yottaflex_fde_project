@@ -1,5 +1,12 @@
 # Development log
 
+## 2026-11-02 — AI-use clarity and negative tests
+
+- Rewrote the AI-use account to identify which architecture choices Codex proposed, which scope and review decisions I made, and what remains unverified.
+- Added failing-case tests for lifecycle reactivation, illegal operating-state transitions, broken event chains, missing restoration, and terminal-bridge mismatch; the suite now has 23 tests.
+- Explicitly documented that ordinary demand/setpoint/mode changes are not simulated in this version.
+- Tried pushing to the supplied GitHub URL. GitHub returned HTTP 403 for the authenticated account, so the commits remain local; no force push was attempted.
+
 ## 2026-11-02 — Reviewer-readiness documentation
 
 - Added a design rationale with scope, choices, trade-offs, test approach, limitations, and measured validation evidence.
