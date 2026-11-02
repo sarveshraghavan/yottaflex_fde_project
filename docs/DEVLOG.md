@@ -1,5 +1,11 @@
 # Development log
 
+## 2026-11-02 — Public GitHub push
+
+- After the GitHub credentials were corrected, pushed `3d6979f` to `sarveshraghavan/yottaflex_fde_project` on `main`.
+- GitHub reports the repository visibility as public and the default branch as `main`; remote `main` matched the local commit at push time.
+- A fresh clone from the GitHub URL is being checked against the README workflow.
+
 ## 2026-11-02 — AI attribution and walkthrough answers
 
 - Updated `AI_USAGE.md` to credit Claude for design reviews, validation suggestions, and checklists, and Codex for most code drafting, implementation, and local verification. Separated those contributions from my scope choices and review feedback.
