@@ -5,6 +5,7 @@
 - Rewrote the AI-use account to identify which architecture choices Codex proposed, which scope and review decisions I made, and what remains unverified.
 - Added failing-case tests for lifecycle reactivation, illegal operating-state transitions, broken event chains, missing restoration, and terminal-bridge mismatch; the suite now has 23 tests.
 - Explicitly documented that ordinary demand/setpoint/mode changes are not simulated in this version.
+- Ran the README workflow in a clean clone: sample validation and 23 tests passed with no `data/` directory; full generation, SQLite/JSON validation, two-generation hashes, and tests then passed.
 - Tried pushing to the supplied GitHub URL. GitHub returned HTTP 403 for the authenticated account, so the commits remain local; no force push was attempted.
 
 ## 2026-11-02 — Reviewer-readiness documentation

@@ -25,6 +25,6 @@ Codex executed the latest 23-test suite, sample and full SQLite validation, and 
 
 ## What I have not verified
 
-I have not compared the synthetic model or its noise assumptions with real plant measurements, nor verified that these thresholds generalize to a real facility. I have not completed a clean-clone run of the README commands or independently rehearsed/presented the walkthrough. The full output was generated locally, but no GitHub push has succeeded yet because GitHub returned HTTP 403 for the configured repository URL.
+I have not compared the synthetic model or its noise assumptions with real plant measurements, nor verified that these thresholds generalize to a real facility. I have not independently rehearsed or presented the walkthrough. I did complete a clean-clone check: the sample validator and 23 tests passed before `data/` existed, then the full README generation, validation, JSON, reproducibility, and test commands passed. The full output was generated locally, but no GitHub push has succeeded yet because GitHub returned HTTP 403 for the configured repository URL.
 
 All generated process values, readings, events, alarms, and labels are synthetic. No real plant records or third-party operational dataset were used.
