@@ -174,17 +174,17 @@ erDiagram
 | `valve_mode_states.csv` | Composite temporal key (`valve_id`, `operating_mode_id`, `effective_from_utc`); state is `open` in the nominal mode; effective end is optional. |
 | `ground_truth.csv` | `scenario_id` primary key; references run, evidence sensor, and evidence telemetry. Contains fault type/parameters, process-fault flag, effect, window noise, `detectable`, and `alarm_detected`; keep separate from features. Sensor faults set `is_process_fault=false`. |
 | `process_truth.csv` | `telemetry_id` primary/FK; includes true value, injected noise, and sigma. Evaluation-only; never include in model features. |
-| `equipment_events.csv` | `event_id` primary key; references run and cause scenario. Captures equipment operating-state change and restoration; field-level specification follows below. |
+| `equipment_events.csv` | `event_id` primary key; references run and cause scenario. Captures equipment operating-state change and restoration; validator checks allowed pairs, chronological state chaining per asset within each run, and matching restoration at that run's end for every fault transition. |
 | `network_balance.csv` | Composite key (timestamp, run, facility); true/measured residuals, flows, storage rate and tank levels. |
 | `fault_location_rules.csv` | Expected signal direction per fault/location; documentation rows, not telemetry. |
-| `negative_fixtures.csv` | `case_id` primary key; five isolated invalid examples and validator outcome. |
+| `negative_fixtures.csv` | `case_id` primary key; six isolated invalid examples (including rejected `retired → active`) and validator outcome. |
 | `boundary_fixtures.csv` | `boundary_id` primary key; three valid near-limit examples and range-check outcome. |
 
 The `lines.csv` fields are: `line_id` (required primary key), `facility_id` (required Facility FK), `source_tank_id` and `destination_tank_id` (required Tank FKs in that facility and distinct), `pump_id` (required Pump FK, one per line), and `valve_id`/`pipe_id` (required terminal Valve/Pipe FKs mirrored from the final `line_valves`/`line_pipes` sequence entries). The SQL/SQLite validator checks this terminal-reference redundancy.
 
 ### Lifecycle states and transitions
 
-The `lifecycle_state` enum on facilities, tanks, pumps, valves, and pipes allows `planned`, `active`, `maintenance`, `out_of_service`, and `retired`. The generated sample currently sets every asset to `active`; lifecycle changes are supported schema states, not transitions emitted in this simulation.
+The `lifecycle_state` enum on facilities, tanks, pumps, valves, and pipes allows `planned`, `active`, `maintenance`, `out_of_service`, and `retired`. Generated asset rows currently remain `active`; the lifecycle transition validator is exercised by the negative fixture `retired → active`, which must be rejected. Emitted `equipment_events` describe run-scoped operating-condition changes (such as running/degraded), not changes to an asset's lifecycle field.
 
 | From | Allowed next state | Meaning |
 |---|---|---|
@@ -194,7 +194,7 @@ The `lifecycle_state` enum on facilities, tanks, pumps, valves, and pipes allows
 | `out_of_service` | `active`, `maintenance`, `retired` | Restore, repair, or retire. |
 | `retired` | none | Terminal lifecycle state. |
 
-These lifecycle transitions are separate from the operating-condition events below.
+These lifecycle transitions are checked by the `allowed_lifecycle_transition` validator rule. They are separate from run-scoped operating-condition transitions in `equipment_events`. Valid operating-event pairs are `running ↔ degraded` for pumps, `open ↔ partial` for valves, `good ↔ stuck_at` for sensors, and pipe transitions between `normal` and a fault state (`leaking`, `blocked`, or `leaking_blocked`), including `leaking ↔ blocked` if the compound fault changes. Event chains are independent per simulation run.
 
 ### EquipmentEvent — `equipment_events.csv`
 
@@ -221,6 +221,6 @@ These lifecycle transitions are separate from the operating-condition events bel
 
 `data/seed.sql` contains table DDL, primary/foreign keys, and inserts for every generated table, including evaluation tables. `data/export.json` is the feature-oriented JSON and contains no `ground_truth`, `process_truth`, `network_balance`, `alarms`, or `equipment_events` tables. `data/ground_truth.json` separately contains those evaluation/validation tables plus the network validation summary. Both JSON files use compact row arrays with an adjacent ordered `columns` list. `src/validate_sqlite.py` loads the full SQL seed into SQLite and checks FK integrity and joins among telemetry/sensors/runs/modes, telemetry/process truth, ground truth/evidence, alarms/trigger telemetry, and valve/mode rows. The full SQL seed is a validation bundle; detector feature tables must never join to ground-truth/process-truth tables.
 
-`source_manifest.json` records synthetic provenance, seed, relative generator command, SHA-256 hashes for CSV/SQL/JSON/summary outputs, and CSV row counts. `network_validation_summary.json` records row totals, connectivity, validation outcomes, and residual statistics.
+`source_manifest.json` records synthetic provenance, seed, relative generator command, SHA-256 hashes for CSV/SQL/JSON/summary outputs, and CSV row counts. `network_validation_summary.json` records row totals, connectivity, validation outcomes, and residual statistics. Sensor IDs use `SNS-{n:03d}`: three digits are a minimum width, not a maximum, so 1,000 sensors become `SNS-1000` without truncation; this dataset has 130 sensors.
 
 The process solver is steady state at each one-minute sample. Shared source/destination tanks evolve; the eight buffer tanks per facility are reserve tanks with configured levels and no simulated flow. Runs last about 69–71 minutes to retain full sensor coverage at exactly 100,000 telemetry rows; this dataset has no diurnal demand profile. Noise settings (2% flow, 1% pressure, 0.5% level relative sigma) are synthetic assumptions, not measured instrument noise. The residual tolerance is a two-sided 99% Gaussian envelope propagated from independent inlet/outlet flow noise, not a measured residual standard deviation or a 3σ residual limit.

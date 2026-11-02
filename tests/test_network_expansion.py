@@ -38,8 +38,10 @@ class NetworkExpansionTests(unittest.TestCase):
             self.assertNotIn("true_value", telemetry[0])
             self.assertNotIn("noise_sigma", telemetry[0])
             self.assertEqual(len(events), 12)  # Two diff-derived transitions for each of six fault runs.
-            self.assertEqual(len(edge_cases), 5)
+            self.assertEqual(len(edge_cases), 6)
             self.assertTrue(all(r["validator_flagged"] == "true" for r in edge_cases))
+            invalid_lifecycle = next(r for r in edge_cases if r["case_id"] == "EDGE-006")
+            self.assertEqual(invalid_lifecycle["observed"], "from_state=retired; to_state=active")
             self.assertEqual(len(boundaries), 3)
             self.assertTrue(all(r["validator_passed"] == "true" for r in boundaries))
             self.assertEqual(summary["compound_fault_runs"], 1)
@@ -57,6 +59,10 @@ class NetworkExpansionTests(unittest.TestCase):
             self.assertTrue(summary["line_terminal_bridges_consistent"])
             self.assertTrue(summary["event_and_truth_run_ids_valid"])
             self.assertTrue(summary["all_negative_fixtures_flagged"])
+            self.assertTrue(summary["equipment_event_transitions_valid"])
+            self.assertTrue(summary["equipment_event_chains_valid"])
+            self.assertTrue(summary["equipment_fault_events_restored"])
+            self.assertTrue(summary["lifecycle_invalid_transition_fixture_flagged"])
             self.assertTrue(summary["all_boundary_fixtures_pass_range_checks"])
             self.assertTrue(summary["alarm_telemetry_references_valid"])
             self.assertEqual(summary["alarm_vs_detectable_on_labeled_windows"]["agreement_rate"], 1.0)
@@ -73,6 +79,7 @@ class NetworkExpansionTests(unittest.TestCase):
         self.assertEqual(len(sensors), 130)
         self.assertEqual(sensors[0]["sensor_id"], "SNS-001")
         self.assertTrue(all(len(s["sensor_id"]) == 7 and s["sensor_id"].startswith("SNS-") and s["sensor_id"][4:].isdigit() for s in sensors))
+        self.assertEqual(f"SNS-{1000:03d}", "SNS-1000")  # Minimum width expands without truncation.
         for facility in facilities:
             local_valves = [v for v in valves if v["facility_id"] == facility["facility_id"]]
             self.assertEqual(len(local_valves), 20)
@@ -98,6 +105,11 @@ class NetworkExpansionTests(unittest.TestCase):
             self.assertEqual(result["invalid_polymorphic_pipe_nodes"], 0)
             self.assertEqual(result["invalid_sensor_id_formats"], 0)
             self.assertEqual(result["inconsistent_line_terminal_bridges"], 0)
+            self.assertEqual(result["orphan_line_valve_bridges"], 0)
+            self.assertEqual(result["orphan_line_pipe_bridges"], 0)
+            self.assertTrue(result["equipment_event_chains_valid"])
+            self.assertTrue(result["equipment_fault_events_restored"])
+            self.assertTrue(result["invalid_lifecycle_transition_fixture_flagged"])
             self.assertTrue(result["json_feature_export_has_no_truth_tables"])
             self.assertTrue(result["json_truth_export_is_separate"])
 

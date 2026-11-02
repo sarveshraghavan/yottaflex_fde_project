@@ -20,6 +20,17 @@ FAULT_SCENARIOS = ("leak", "blockage", "pump_degradation", "valve_partial", "sen
 START = datetime(2026, 1, 1, tzinfo=timezone.utc)
 NOISE_RELATIVE_SIGMA = {"flow": 0.02, "pressure": 0.01, "level": 0.005}
 DETECTABILITY_SIGMA = 3.0
+LIFECYCLE_TRANSITIONS = {
+    "planned": {"active", "retired"},
+    "active": {"maintenance", "out_of_service", "retired"},
+    "maintenance": {"active", "out_of_service", "retired"},
+    "out_of_service": {"active", "maintenance", "retired"},
+    "retired": set(),
+}
+
+
+def lifecycle_transition_allowed(from_state, to_state):
+    return to_state in LIFECYCLE_TRANSITIONS.get(from_state, set())
 
 
 def write_csv(path, rows, fields):
@@ -423,8 +434,10 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
     write_csv(out / "valves.csv", valves, ["valve_id", "facility_id", "line_id", "normal_opening_pct", "sequence_order", "resistance_k", "lifecycle_state"])
     write_csv(out / "pipes.csv", pipes, ["pipe_id", "facility_id", "line_id", "from_node_id", "to_node_id", "resistance_k", "edge_role", "sequence_order", "lifecycle_state"])
     write_csv(out / "lines.csv", lines, ["line_id", "facility_id", "source_tank_id", "destination_tank_id", "pump_id", "valve_id", "pipe_id"])
-    write_csv(out / "line_valves.csv", [{"line_id": l["line_id"], "valve_id": v["valve_id"], "sequence_order": v["sequence_order"]} for l in lines for v in valves if v["line_id"] == l["line_id"]], ["line_id", "valve_id", "sequence_order"])
-    write_csv(out / "line_pipes.csv", [{"line_id": l["line_id"], "pipe_id": q["pipe_id"], "sequence_order": q.get("sequence_order", 1)} for l in lines for q in pipes if q["line_id"] == l["line_id"]], ["line_id", "pipe_id", "sequence_order"])
+    line_valves = [{"line_id": l["line_id"], "valve_id": v["valve_id"], "sequence_order": v["sequence_order"]} for l in lines for v in valves if v["line_id"] == l["line_id"]]
+    line_pipes = [{"line_id": l["line_id"], "pipe_id": q["pipe_id"], "sequence_order": q.get("sequence_order", 1)} for l in lines for q in pipes if q["line_id"] == l["line_id"]]
+    write_csv(out / "line_valves.csv", line_valves, ["line_id", "valve_id", "sequence_order"])
+    write_csv(out / "line_pipes.csv", line_pipes, ["line_id", "pipe_id", "sequence_order"])
     write_csv(out / "sensors.csv", sensors, ["sensor_id", "facility_id", "line_id", "entity_type", "entity_id", "node_id", "pipe_id", "position", "metric", "unit", "initial_level_m"])
     write_csv(out / "telemetry.csv", all_telemetry, ["telemetry_id", "timestamp_utc", "sim_run_id", "operating_mode_id", "facility_id", "line_id", "sensor_id", "entity_id", "node_id", "pipe_id", "position", "metric", "value", "unit", "quality_flag"])
     write_csv(out / "process_truth.csv", all_process_truth, ["telemetry_id", "timestamp_utc", "sim_run_id", "sensor_id", "true_value", "noise_added", "noise_sigma"])
@@ -465,12 +478,17 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
     }
     alarm_detectability["agreement_rate"] = sum(expected == actual for expected, actual in alarm_signal_pairs) / len(alarm_signal_pairs) if alarm_signal_pairs else 1.0
     edge_cases_flagged = all(r["validator_flagged"] == "true" for r in edge_cases)
+    line_ids = {ln["line_id"] for ln in lines}
+    valve_by_id = {v["valve_id"]: v for v in valves}
+    pipe_by_id = {q["pipe_id"]: q for q in pipes}
     line_bridge_consistent = all(
         ln["valve_id"] == max((v for v in valves if v["line_id"] == ln["line_id"]), key=lambda v: v["sequence_order"])["valve_id"]
         and ln["pipe_id"] == max((q for q in pipes if q["line_id"] == ln["line_id"]), key=lambda q: q["sequence_order"])["pipe_id"]
         for ln in lines
-    )
+    ) and all(row["line_id"] in line_ids and row["valve_id"] in valve_by_id and valve_by_id[row["valve_id"]]["line_id"] == row["line_id"] for row in line_valves) and all(row["line_id"] in line_ids and row["pipe_id"] in pipe_by_id and pipe_by_id[row["pipe_id"]]["line_id"] == row["line_id"] for row in line_pipes)
     boundary_runs = [r for r in runs if json.loads(r["config_json"]).get("boundary_case", "none") != "none"]
+    run_end_by_id = {r["sim_run_id"]: (START + timedelta(hours=json.loads(r["config_json"])["hours"])).isoformat().replace("+00:00", "Z") for r in runs}
+    event_validation = equipment_event_checks(events, run_end_by_id)
     pump_edge_run_ids = {r["sim_run_id"] for r in runs if json.loads(r["config_json"]).get("boundary_case") == "boundary_pump_edge"}
     pump_edge_ratios = [
         (b["q_in_true_m3_h"] / lines_per_facility) / math.sqrt(max((50.0 - (b["destination_level_m"] - b["source_level_m"])), 0.0) / 0.0015)
@@ -478,6 +496,7 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
     ]
     summary = {
         "facility_count": facility_count, "pump_count": len(pumps), "tank_count": len(tanks), "valve_count": len(valves), "lines_per_facility": lines_per_facility, "valves_per_pump_average": valve_count / pump_count, "valves_per_line_range": {"min": min(len([v for v in valves if v["line_id"] == l["line_id"]]) for l in lines), "max": max(len([v for v in valves if v["line_id"] == l["line_id"]]) for l in lines)}, "run_count": len(runs),
+        "sensor_count": len(sensors), "sensor_id_format": "SNS-{n:03d}; three-digit minimum, expands above 999 without truncation",
         "telemetry_rows_target": telemetry_rows_target, "telemetry_rows_exact": len(all_telemetry) == telemetry_rows_target, "telemetry_rows_difference": len(all_telemetry) - telemetry_rows_target, "time_steps_per_run_range": {"min": min(json.loads(r["config_json"])["time_steps"] for r in runs), "max": max(json.loads(r["config_json"])["time_steps"] for r in runs)}, "step_seconds": step_seconds,
         "telemetry_rows": len(all_telemetry), "ground_truth_rows": len(truth), "event_rows": len(events),
         "primary_keys_unique": all(len(rows) == len({r[key] for r in rows}) for rows, key in [(facilities,"facility_id"),(tanks,"tank_id"),(pumps,"pump_id"),(valves,"valve_id"),(pipes,"pipe_id"),(lines,"line_id"),(sensors,"sensor_id"),(runs,"sim_run_id")]),
@@ -493,6 +512,10 @@ def write_network(out: Path, seed=20261022, facility_count=3, lines_per_facility
         "true_network_balance_reconciles": max_true_residual < 1e-6,
         "negative_fixture_count": len(edge_cases),
         "all_negative_fixtures_flagged": edge_cases_flagged,
+        "lifecycle_invalid_transition_fixture_flagged": next((r["validator_flagged"] == "true" for r in edge_cases if r["case_id"] == "EDGE-006"), False),
+        "equipment_event_transitions_valid": event_validation["transitions_valid"],
+        "equipment_event_chains_valid": event_validation["chains_valid"],
+        "equipment_fault_events_restored": event_validation["fault_events_restored"],
         "boundary_fixture_count": len(boundaries),
         "all_boundary_fixtures_pass_range_checks": all(r["validator_passed"] == "true" for r in boundaries),
         "compound_fault_runs": sum(1 for r in truth if r["issue_type"] == "compound_fault"),
@@ -567,6 +590,7 @@ def edge_case_fixtures(flow_noise_sigma=0.02, max_pumps_per_facility=7):
         {"case_id":"EDGE-003", "case":"flow conservation beyond tolerance", "entity":"NetworkBalance", "observed":"", "ground_truth_issue":"flow_balance_violation", "is_process_fault":"true", "validator_rule":"residual_within_noise_tolerance", "_data":{}},
         {"case_id":"EDGE-004", "case":"simulation output missing input config", "entity":"SimulationRun", "observed":"config_json=", "ground_truth_issue":"missing_run_configuration", "is_process_fault":"false", "validator_rule":"configuration_present", "_data":{"config_json":""}},
         {"case_id":"EDGE-005", "case":"sensor fault mislabeled as process fault", "entity":"GroundTruth", "observed":"issue_type=sensor_fault; is_process_fault=true", "ground_truth_issue":"sensor_fault_label_mismatch", "is_process_fault":"false", "validator_rule":"sensor_fault_not_process_fault", "_data":{"issue_type":"sensor_fault","is_process_fault":True}},
+        {"case_id":"EDGE-006", "case":"retired asset reactivated", "entity":"LifecycleEvent", "observed":"from_state=retired; to_state=active", "ground_truth_issue":"invalid_lifecycle_transition", "is_process_fault":"false", "validator_rule":"allowed_lifecycle_transition", "_data":{"from_state":"retired","to_state":"active"}},
     ]
     for row in fixtures:
         data = row.pop("_data")
@@ -580,9 +604,34 @@ def edge_case_fixtures(flow_noise_sigma=0.02, max_pumps_per_facility=7):
             row["observed"] = f"residual_m3_h={data['residual_m3_h']:.3f}; noise_tolerance_m3_h={data['tolerance_m3_h']:.3f}"
             flagged = abs(data["residual_m3_h"]) > data["tolerance_m3_h"]
         elif case_id == "EDGE-004": flagged = not bool(data["config_json"])
-        else: flagged = data["issue_type"] == "sensor_fault" and data["is_process_fault"]
+        elif case_id == "EDGE-005": flagged = data["issue_type"] == "sensor_fault" and data["is_process_fault"]
+        else: flagged = not lifecycle_transition_allowed(data["from_state"], data["to_state"])
         row["validator_flagged"] = str(flagged).lower()
     return fixtures
+
+
+def equipment_event_checks(events, run_end_by_id=None):
+    """Validate operating-state transitions, per-asset chains, and paired restoration."""
+    allowed = {
+        "pump": {("running", "degraded"), ("degraded", "running")},
+        "valve": {("open", "partial"), ("partial", "open")},
+        "pipe": {(a, b) for a in ("normal", "leaking", "blocked", "leaking_blocked") for b in ("normal", "leaking", "blocked", "leaking_blocked") if a != b and (a == "normal" or b == "normal" or {a, b} == {"leaking", "blocked"})},
+        "sensor": {("good", "stuck_at"), ("stuck_at", "good")},
+    }
+    transitions_valid = all((e["from_state"], e["to_state"]) in allowed.get(e["entity_type"], set()) for e in events)
+    by_asset = {}
+    for event in sorted(events, key=lambda e: (e["sim_run_id"], e["entity_id"], e["event_ts"], e["event_id"])):
+        chain = by_asset.setdefault((event["sim_run_id"], event["entity_id"]), [])
+        if chain and chain[-1]["to_state"] != event["from_state"]:
+            chain.append({"_broken": True})
+        chain.append(event)
+    chains_valid = all(not any(e.get("_broken") for e in chain) for chain in by_asset.values())
+    starts = [e for e in events if (e["from_state"], e["to_state"]) in {("running", "degraded"), ("open", "partial"), ("normal", "leaking"), ("normal", "blocked"), ("normal", "leaking_blocked"), ("leaking", "leaking_blocked"), ("blocked", "leaking_blocked"), ("good", "stuck_at")}]
+    def restoration_matches(e):
+        matches = [r for r in events if (r["entity_id"], r["sim_run_id"], r["cause_scenario_id"], r["from_state"], r["to_state"]) == (e["entity_id"], e["sim_run_id"], e["cause_scenario_id"], e["to_state"], e["from_state"])]
+        return len(matches) == 1 and (run_end_by_id is None or matches[0]["event_ts"] == run_end_by_id.get(e["sim_run_id"]))
+    restored = all(restoration_matches(e) for e in starts)
+    return {"transitions_valid": transitions_valid, "chains_valid": chains_valid, "fault_events_restored": restored}
 
 
 def boundary_fixtures():
