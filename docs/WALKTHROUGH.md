@@ -27,7 +27,9 @@ The alarm rows are created only for labeled fault windows and use the same windo
 
 ### What AI output did I correct or qualify?
 
-I challenged the implication that near-zero mass balance proves realism; tank storage is updated from the same solved flows, so the check is partly by construction. I also pointed out that an early leak threshold of 1.0 sat at the bottom of the then-current sweep. The sweep was extended down to 0.05; the later result brackets the paired-flow crossing between 1.25 and 1.5 under assumed noise, not measured plant noise. Those caveats are documented in `docs/DESIGN.md` and `docs/AI_USAGE.md`.
+I challenged the implication that near-zero mass balance proves realism; tank storage is updated from the same solved flows, so the check is partly by construction. I also pointed out that an early leak threshold of 1.0 sat at the bottom of the then-current sweep. The sweep was extended down to 0.05; the later result brackets the paired-flow crossing between 1.25 and 1.5 under assumed noise, not measured plant noise.
+
+For the what-if, I suggested comparing the 24-hour flow-volume difference with tank-level displacement. Codex ran the check and found its summary used the last sampled level at 23:59 although the flow means covered the final minute as well. I asked Codex to correct the time boundary and test `Δlevel × tank area ≈ Δvolume`; the summary now integrates all 1,440 steps and the test checks it against the 2,000 m² tank area. These review details are documented in `docs/DESIGN.md` and `docs/AI_USAGE.md`.
 
 ### Why is the what-if limited to one parameter on one line?
 
