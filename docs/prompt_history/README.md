@@ -18,4 +18,4 @@ This is a concise record of the main instructions and review questions that shap
 
 See [AI usage](../AI_USAGE.md), [design rationale](../DESIGN.md), and the [project README](../../README.md) for the resulting decisions and checks.
 
-The verbatim what-if review text is archived in [raw review prompts](raw/what-if-review.md). Earlier project decisions remain summarized above rather than represented as full source conversation exports.
+The verbatim what-if review text is archived in [raw review prompts](raw/what-if-review.md). The chronological [Codex user-prompt archive](raw/codex-user-prompts.jsonl) contains the 30 user-message text payloads from this project thread. Local machine paths are redacted, attachments are not embedded, and assistant responses are not included. A full Claude source conversation was not available as an export.
