@@ -7,9 +7,9 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 try:
-    from src.line_physics import Line, simulate
+    from src.line_physics import Line, TANK_AREA_M2, simulate
 except ModuleNotFoundError:
-    from line_physics import Line, simulate
+    from line_physics import Line, TANK_AREA_M2, simulate
 
 
 STARTED_AT = "2026-01-01T00:00:00Z"
@@ -31,7 +31,7 @@ def _simulation_run(run_id, config):
 def run_what_if(out: Path, valve_opening=0.8, hours=24, step_seconds=60):
     """Write paired baseline/valve-change SimulationRuns and their deltas."""
     if not 0.01 <= valve_opening <= 1.0:
-        raise ValueError("valve_opening must be between 0.01 and 1.0")
+        raise ValueError("valve_opening must be in [0.01, 1.0]; 0.0 (fully closed) is unsupported")
     if hours <= 0 or step_seconds <= 0 or hours * 3600 % step_seconds:
         raise ValueError("hours and step_seconds must be positive and divide evenly")
 
@@ -114,9 +114,17 @@ def run_what_if(out: Path, valve_opening=0.8, hours=24, step_seconds=60):
         "destination_level_m": "delta_destination_level_m",
     }
     summary["mean_deltas"] = {name: sum(row[key] for row in series) / len(series) for name, key in delta_keys.items()}
+    step_hours = step_seconds / 3600.0
+    source_volume_delta = -sum(row["delta_q_in_m3_h"] for row in series) * step_hours
+    destination_volume_delta = sum(row["delta_q_out_m3_h"] for row in series) * step_hours
+    summary["tank_area_m2"] = TANK_AREA_M2
+    summary["tank_volume_deltas_m3"] = {
+        "source": source_volume_delta,
+        "destination": destination_volume_delta,
+    }
     summary["end_level_deltas_m"] = {
-        "source": series[-1]["delta_source_level_m"],
-        "destination": series[-1]["delta_destination_level_m"],
+        "source": source_volume_delta / TANK_AREA_M2,
+        "destination": destination_volume_delta / TANK_AREA_M2,
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return summary

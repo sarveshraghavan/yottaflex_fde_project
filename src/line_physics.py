@@ -10,6 +10,8 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+TANK_AREA_M2 = 2_000.0
+
 
 @dataclass(frozen=True)
 class Line:
@@ -100,8 +102,8 @@ def simulate(line: Line, scenario: str, hours=24, step_seconds=60):
     elif scenario == "valve_partial":
         line = replace(line, valve_open=0.65)
 
-    source = Tank(capacity_m3=100_000, area_m2=2_000, elevation_m=0, volume_m3=60_000)
-    destination = Tank(capacity_m3=100_000, area_m2=2_000, elevation_m=0, volume_m3=56_000)
+    source = Tank(capacity_m3=100_000, area_m2=TANK_AREA_M2, elevation_m=0, volume_m3=60_000)
+    destination = Tank(capacity_m3=100_000, area_m2=TANK_AREA_M2, elevation_m=0, volume_m3=56_000)
     dt_hours = step_seconds / 3600.0
     steps = hours * 3600 // step_seconds
     start = datetime(2026, 1, 1, tzinfo=timezone.utc)

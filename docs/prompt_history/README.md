@@ -14,4 +14,8 @@ This is a concise record of the main instructions and review questions that shap
 10. **Reviewer readiness:** requested visible design reasoning, a clean-clone test, clarity about the ignored full dataset, and supporting AI-use and prompt-history documentation.
 11. **Push and final disclosure:** provided the intended GitHub URL and asked for a no-force push, then a clean-clone verification of the README workflow. Also requested accurate attribution of Claude's design reviews/checklists and Codex's implementation work, this conversation in the prompt history, and walkthrough preparation for the solver choice, residual threshold, alarm-check limitations, AI corrections, and a future operating-change what-if.
 
+12. **Operating-change what-if:** accepted the reviewer-proposed single-line valve-opening command; requested paired `SimulationRun` configs, flow/pressure/tank deltas, determinism, input validation, and unchanged full-generator hashes. Follow-up review requested a volume-to-level reconciliation test and consistent updates to the design, data dictionary, AI-use note, dev log, walkthrough, and raw prompt archive.
+
 See [AI usage](../AI_USAGE.md), [design rationale](../DESIGN.md), and the [project README](../../README.md) for the resulting decisions and checks.
+
+The verbatim what-if review text is archived in [raw review prompts](raw/what-if-review.md). Earlier project decisions remain summarized above rather than represented as full source conversation exports.

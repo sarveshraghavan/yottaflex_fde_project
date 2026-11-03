@@ -1,5 +1,13 @@
 # Development log
 
+## 2026-11-03 — Single-line operating what-if
+
+- Took the optional single-line valve-opening what-if from project review feedback and kept it separate from the canonical network generator so the 25 generated output hashes remain unchanged.
+- Added paired `SimulationRun`-shape records with config hashes, a per-step flow/pressure/level comparison, a summary, deterministic IDs, and opening-range validation. The standalone files live in `what-if-output/`, which is git-ignored; they are not merged into the main relational export.
+- Follow-up review noticed that the old “end” level was the last sample at 23:59 while flow deltas covered the full day. Updated the summary to integrate all 1,440 steps and added a test reconciling `Δlevel × 2,000 m²` to the integrated volume difference.
+- Added raw copies of the two what-if review prompts under `docs/prompt_history/raw/`, updated the AI-use, design, dictionary, README and walkthrough docs, and grew the suite to 27 tests.
+- Verified that a 24-hour run with an 80% valve opening lowers mean flow by about 5.60 m³/h and raises discharge pressure by about 20.90 kPa. The source and destination end-level deltas are about +0.0672 m and -0.0672 m, matching the approximately 134.34 m³ transferred-volume difference at the configured 2,000 m² area.
+
 ## 2026-11-02 — Public GitHub push
 
 - After the GitHub credentials were corrected, pushed `3d6979f` to `sarveshraghavan/yottaflex_fde_project` on `main`.

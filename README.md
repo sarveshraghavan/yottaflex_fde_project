@@ -5,7 +5,7 @@ One deterministic, physics-based generator creates a synthetic plant network and
 
 ## Not implemented
 
-- Facility-wide operating-change simulation (the what-if command below covers only one valve opening on one line; demand schedules and mode transitions are out of scope)
+- Facility-wide demand schedules, mode transitions and multi-parameter changes (the what-if command below covers only one valve opening on one line)
 - Diurnal demand or morning/night profiles
 - A general detector that scans fault-free runs
 - Calibration against measured sensor noise or real plant data
@@ -16,10 +16,10 @@ One deterministic, physics-based generator creates a synthetic plant network and
 | Command | Expected result |
 |---|---|
 | `python src/validate_sqlite.py --data sample-data` | Valid report; zero foreign-key violations; exactly 10,000 telemetry rows; all required negative fixtures flagged |
-| `python -m unittest discover -s tests -v` | 26 tests pass |
+| `python -m unittest discover -s tests -v` | 27 tests pass |
 | Full generation command below | Exactly 100,000 telemetry rows across 33 runs; typically about 15 seconds and about 123 MB in `data/` |
 | `python src/repro_network.py ...` | `reproducible: true`; matching row counts and SHA-256 hashes across 25 output files |
-| `python src/what_if.py --out what-if-output --valve-opening 0.8 --hours 24` | Writes paired `SimulationRun` records, a 1,440-step comparison, and a JSON summary with flow, pressure, and level deltas |
+| `python src/what_if.py --out what-if-output --valve-opening 0.8 --hours 24` | Writes paired `SimulationRun` records, a 1,440-step comparison, and a JSON summary with flow, pressure, tank-volume and level deltas |
 
 The full-generation time and disk use are typical for the project environment and can vary by machine.
 
@@ -72,7 +72,9 @@ The standalone what-if command compares a baseline line with the same line at a 
 python src/what_if.py --out what-if-output --valve-opening 0.8 --hours 24 --step-seconds 60
 ```
 
-It writes two rows in `simulation_runs.csv`, each with a `config_json` and hash, paired per-step values and deltas in `what_if_timeseries.csv`, and mean/end-level differences in `summary.json`. Outputs go to a separate folder, so this command does not change the main generator's data or reproducibility hashes. This is a single-line valve-opening comparison; facility-wide operating schedules, demand changes, and mode transitions remain out of scope.
+It writes two rows in `simulation_runs.csv`, each with a `config_json` and hash, paired per-step values and deltas in `what_if_timeseries.csv`, and mean flow/pressure changes plus end-of-window tank-volume and level differences in `summary.json`. The level deltas are calculated from the integrated flow differences and the 2,000 m² tank area, so they represent the end of the full interval (including the last time step). The records use a `SIM-WIF-` ID prefix and a separate output folder; they do not enter the main dataset's `simulation_runs.csv`. The default `what-if-output/` folder is git-ignored. Thus the command leaves the canonical generator's files and hashes unchanged. It models one valve opening on one line only; facility-wide demand schedules, mode transitions and multi-parameter changes remain out of scope.
+
+For the example above, mean flow decreases by about 5.60 m³/h and discharge pressure rises by about 20.90 kPa. The integrated 24-hour volume difference is about 134.34 m³, corresponding to source and destination level differences of about +0.06717 m and −0.06717 m.
 
 The default topology has 7/7/6 pumps, 10 tanks per facility, and 20 valves per facility. Valves are in series on each pump line; train sizes vary from two to four valves so the totals fit both the pump and facility counts. Every facility asset belongs to a connected graph. The generator allocates whole one-minute samples across runs to reach **exactly 100,000 telemetry rows**. Fault runs keep the same sample count as their baseline for paired comparisons; run lengths range from 69 to 71 samples at the default scale. Use `--time-steps` to give every run a fixed sample count instead, or adjust counts and `--telemetry-rows` to change scale.
 

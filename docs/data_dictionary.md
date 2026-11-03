@@ -118,13 +118,15 @@ This dictionary describes the generated network dataset. CSV values are text; co
 
 | Field | Type | Required | Allowed values / units | Unique / validation |
 |---|---|---|---|---|
-| `sim_run_id` | string | yes | `SIM-2026-NNNNNN` | Primary key. |
+| `sim_run_id` | string | yes | Main dataset: `SIM-2026-NNNNNN`; standalone what-if: `SIM-WIF-<10 hex>-BASE` or `SIM-WIF-<10 hex>-CHANGE` | Primary key within the output set. What-if IDs use a separate prefix and are written outside the main dataset. |
 | `facility_id` | string | yes | Facility ID | FK to Facility. |
 | `seed` | integer | yes | Integer | Reproduces the random stream. |
 | `config_hash` | string | yes | SHA-256 hex | Hash of canonical `config_json`. |
 | `config_json` | JSON object | yes | Noise assumptions, seed, sample count, model inputs | Must parse; fault schedule/labels forbidden. |
 | `started_at_utc` | timestamp | yes | ISO-8601 UTC | Fixed synthetic start instant. |
 | `status` | enum | yes | `complete` | Run completed successfully. |
+
+The standalone valve-opening what-if writes `simulation_runs.csv` with these same columns and the same canonical-JSON SHA-256 convention for `config_hash`. Its IDs use a `SIM-WIF-` prefix followed by a digest of the parameter and time-grid inputs, then `BASE` or `CHANGE`; they cannot match the generator's `SIM-2026-NNNNNN` IDs. It writes that file only under the chosen what-if output folder (default `what-if-output/`), not into the main dataset's `simulation_runs.csv`. Its `FAC-WHATIF-001` value is a local scenario identifier and does not reference a Facility row in the main dataset; do not merge the standalone run rows into the main relational export without adding the corresponding Facility entity. The what-if is deterministic and records `noise_model: none` with seed `0`.
 
 ### 10. OperatingMode — `operating_modes.csv`
 

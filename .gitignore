@@ -7,6 +7,7 @@ __pycache__/
 
 # Full or intermediate generated outputs; sample-data/ is intentionally kept
 /data/
+/what-if-output/
 /data-preview/
 /line-physics-preview/
 /network-*/
