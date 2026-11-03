@@ -5,7 +5,7 @@ One deterministic, physics-based generator creates a synthetic plant network and
 
 ## Not implemented
 
-- Operating-change simulation such as demand schedules, setpoint changes, or mode transitions
+- Facility-wide operating-change simulation (the what-if command below covers only one valve opening on one line; demand schedules and mode transitions are out of scope)
 - Diurnal demand or morning/night profiles
 - A general detector that scans fault-free runs
 - Calibration against measured sensor noise or real plant data
@@ -16,9 +16,10 @@ One deterministic, physics-based generator creates a synthetic plant network and
 | Command | Expected result |
 |---|---|
 | `python src/validate_sqlite.py --data sample-data` | Valid report; zero foreign-key violations; exactly 10,000 telemetry rows; all required negative fixtures flagged |
-| `python -m unittest discover -s tests -v` | 23 tests pass |
+| `python -m unittest discover -s tests -v` | 26 tests pass |
 | Full generation command below | Exactly 100,000 telemetry rows across 33 runs; typically about 15 seconds and about 123 MB in `data/` |
 | `python src/repro_network.py ...` | `reproducible: true`; matching row counts and SHA-256 hashes across 25 output files |
+| `python src/what_if.py --out what-if-output --valve-opening 0.8 --hours 24` | Writes paired `SimulationRun` records, a 1,440-step comparison, and a JSON summary with flow, pressure, and level deltas |
 
 The full-generation time and disk use are typical for the project environment and can vary by machine.
 
@@ -62,6 +63,16 @@ python src/network_expansion.py --out sample-data --seed 20261022 --facilities 3
 ```
 
 The full `data/` output is ignored by Git because the SQL seed exceeds GitHub's 50 MB warning size. `sample-data/` is the reviewable starter set; the command above regenerates the full scale locally.
+
+## Simulate an operating change
+
+The standalone what-if command compares a baseline line with the same line at a changed valve opening, starting from identical tank levels and using the same time grid. For example:
+
+```shell
+python src/what_if.py --out what-if-output --valve-opening 0.8 --hours 24 --step-seconds 60
+```
+
+It writes two rows in `simulation_runs.csv`, each with a `config_json` and hash, paired per-step values and deltas in `what_if_timeseries.csv`, and mean/end-level differences in `summary.json`. Outputs go to a separate folder, so this command does not change the main generator's data or reproducibility hashes. This is a single-line valve-opening comparison; facility-wide operating schedules, demand changes, and mode transitions remain out of scope.
 
 The default topology has 7/7/6 pumps, 10 tanks per facility, and 20 valves per facility. Valves are in series on each pump line; train sizes vary from two to four valves so the totals fit both the pump and facility counts. Every facility asset belongs to a connected graph. The generator allocates whole one-minute samples across runs to reach **exactly 100,000 telemetry rows**. Fault runs keep the same sample count as their baseline for paired comparisons; run lengths range from 69 to 71 samples at the default scale. Use `--time-steps` to give every run a fixed sample count instead, or adjust counts and `--telemetry-rows` to change scale.
 
@@ -112,10 +123,11 @@ The SQLite validator loads `seed.sql` into an in-memory database, runs `PRAGMA f
 | `src/check_json.py` | Parses and verifies the feature and truth JSON exports. |
 | `src/repro_network.py` | Generates twice and compares all output hashes and CSV counts. |
 | `src/line_physics.py` | Reusable one-line steady-state hydraulic solver. |
+| `src/what_if.py` | Paired baseline and changed-valve operating-change simulation. |
 | `data/` | Full generated CSVs, `seed.sql`, feature `export.json`, `ground_truth.json`, summary, and manifest; Git-ignored. |
 | `sample-data/` | Checked-in starter-scale version of the same outputs. |
 | `docs/` | Design rationale, data dictionary, assumptions, AI use, prompt history, dev log, and walkthrough outline. |
-| `tests/` | Physics, topology, and deterministic generation tests. |
+| `tests/` | Physics, topology, deterministic generation, and what-if tests. |
 | `requirements.txt`, `LICENSE`, `.gitignore` | Dependency declaration, reuse license, and generated/temp-file exclusions. |
 
 ## Where to look

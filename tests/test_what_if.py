@@ -1,0 +1,56 @@
+import csv
+import hashlib
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from src.what_if import run_what_if
+
+
+class WhatIfTests(unittest.TestCase):
+    def test_valve_change_writes_paired_runs_and_expected_deltas(self):
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "what-if"
+            summary = run_what_if(output, valve_opening=0.8, hours=24)
+
+            with (output / "simulation_runs.csv").open(encoding="utf-8", newline="") as stream:
+                runs = list(csv.DictReader(stream))
+            with (output / "what_if_timeseries.csv").open(encoding="utf-8", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            persisted = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(len(runs), 2)
+            self.assertEqual(len(rows), 1440)
+            self.assertEqual(summary, persisted)
+            self.assertNotEqual(runs[0]["sim_run_id"], runs[1]["sim_run_id"])
+            self.assertTrue(all(json.loads(run["config_json"]) for run in runs))
+            self.assertEqual(json.loads(runs[1]["config_json"])["line_parameters"]["valve_open"], 0.8)
+            self.assertTrue(all(
+                hashlib.sha256(run["config_json"].encode("utf-8")).hexdigest() == run["config_hash"]
+                for run in runs
+            ))
+            self.assertLess(float(summary["mean_deltas"]["q_in_m3_h"]), 0.0)
+            self.assertLess(float(summary["mean_deltas"]["q_out_m3_h"]), 0.0)
+            self.assertAlmostEqual(float(rows[0]["delta_source_level_m"]), 0.0)
+            self.assertAlmostEqual(float(rows[0]["delta_destination_level_m"]), 0.0)
+            self.assertGreater(summary["end_level_deltas_m"]["source"], 0.0)
+            self.assertLess(summary["end_level_deltas_m"]["destination"], 0.0)
+
+    def test_same_what_if_inputs_write_identical_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            left, right = root / "left", root / "right"
+            run_what_if(left, valve_opening=0.8, hours=24)
+            run_what_if(right, valve_opening=0.8, hours=24)
+            for name in ("simulation_runs.csv", "what_if_timeseries.csv", "summary.json"):
+                self.assertEqual((left / name).read_bytes(), (right / name).read_bytes())
+
+    def test_rejects_unusable_valve_opening(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaises(ValueError):
+                run_what_if(Path(temp), valve_opening=0.0, hours=1)
+
+
+if __name__ == "__main__":
+    unittest.main()
