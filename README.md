@@ -3,13 +3,6 @@
 **Repository:** [sarveshraghavan/yottaflex_fde_project](https://github.com/sarveshraghavan/yottaflex_fde_project)  
 One deterministic, physics-based generator creates a synthetic plant network and its process truth, sensor readings, fault labels, alarms, and validation fixtures. No operating-plant data is used.
 
-## Not implemented
-
-- Facility-wide demand schedules, mode transitions and multi-parameter changes (the what-if command below covers only one valve opening on one line)
-- Diurnal demand or morning/night profiles
-- A general detector that scans fault-free runs
-- Calibration against measured sensor noise or real plant data
-- Transient hydraulics, including water hammer and pipe elasticity
 
 ## Expected results
 
