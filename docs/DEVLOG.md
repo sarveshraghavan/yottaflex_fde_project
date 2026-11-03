@@ -7,6 +7,7 @@
 - Follow-up review noticed that the old “end” level was the last sample at 23:59 while flow deltas covered the full day. Updated the summary to integrate all 1,440 steps and added a test reconciling `Δlevel × 2,000 m²` to the integrated volume difference.
 - Added raw copies of the two what-if review prompts under `docs/prompt_history/raw/`, updated the AI-use, design, dictionary, README and walkthrough docs, and grew the suite to 27 tests.
 - Verified that a 24-hour run with an 80% valve opening lowers mean flow by about 5.60 m³/h and raises discharge pressure by about 20.90 kPa. The source and destination end-level deltas are about +0.0672 m and -0.0672 m, matching the approximately 134.34 m³ transferred-volume difference at the configured 2,000 m² area.
+- After pushing `5e9e746`, cloned the public GitHub branch from scratch and ran the README flow: sample validation, JSON check, all 27 tests, the what-if command, full 100,000-row generation, full SQLite/JSON validation, and the 25-output reproducibility check all passed.
 
 ## 2026-11-02 — Public GitHub push
 
